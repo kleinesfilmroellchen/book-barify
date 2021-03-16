@@ -33,4 +33,4 @@ optional arguments:
 Copyright © 2021 kleines Filmröllchen. The MIT licence applies.
 ```
 
-The aa_1.csv file is an example input file that supports the section mode. It contains the chapter info for "Alea Aquarius: Der Ruf des Wassers", a popular German children's novel, as well as the author's attempt at splitting the book into three acts (green: Act 1, blue: Act 2, red: Act 3).
+The example.csv file will be an example input file that supports the section mode.

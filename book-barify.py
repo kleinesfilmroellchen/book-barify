@@ -3,8 +3,11 @@ from sys import stdin
 from typing import Tuple, List, Dict, Union
 import bs4
 import argparse
+from argparse import ArgumentError
 from csv import reader
 from itertools import starmap
+from math import inf
+from re import compile as re_compile
 
 formats = {
     'a3': (297, 420),
@@ -17,6 +20,27 @@ formats = {
     'legal': (216, 356),
     'ledger': (279, 432),
 }
+custom_format_re = re_compile(r'([0-9]+)x([0-9]+)')
+
+
+def page_format(spec: str) -> Tuple[int, int]:
+    '''Type parser for the page format argument to the CLI.
+    The page format can either be a pre-defined format from the list of formats (see above),
+    or a format specification of the form WxH, where W and H are the width and height in millimeters, respectively.'''
+    if spec in formats:
+        return formats[spec]
+
+    # parse WxH format
+    if cf_spec := custom_format_re.match(spec):
+        width_s, height_s = cf_spec.group(1), cf_spec.group(2)
+        try:
+            return int(width_s), int(height_s)
+        except ValueError:
+            raise ArgumentError(
+                spec, 'width and height must be integers, but were {} and {}'.format(width_s, height_s))
+
+    raise ArgumentError(
+        spec, 'argument must be a predefined format {} or custom WxH format'.format(repr(formats.keys())))
 
 
 def chapter_sizes(chapters_csv: List[str], color: str, sections: bool = False) -> List[Tuple[int, str, float, str]]:
@@ -29,7 +53,7 @@ def chapter_sizes(chapters_csv: List[str], color: str, sections: bool = False) -
 
     chapters_reader = reader(chapters_csv, delimiter=',')
     chapters_dict = defaultdict(lambda: ('', 1))
-    min_chapter, max_chapter = 100000, 0
+    min_chapter, max_chapter = inf, 0
     current_section_color = color
     for chapter_csv in chapters_reader:
         if sections and len(chapter_csv) > 3:
@@ -67,6 +91,62 @@ def mm(val) -> str:
     return str(val) + 'mm'
 
 
+def simple_bars(base: bs4.BeautifulSoup, img: bs4.element.Tag, chapters: List[Tuple[int, str, float, str]], width: float, margin_width: float, margin_height: float, rect_height: float, bar_margin: float) -> None:
+    '''Simple bar generator, where each chapter is on a separate line.'''
+    for index, _, clen, ccolor in chapters:
+        rect_width = (width - 2*margin_width) * clen
+        pos_y = margin_height + (index-1) * rect_height * 2
+        crect = img.new_tag('rect',
+                            x=mm(margin_width),
+                            y=mm(pos_y),
+                            height=mm(rect_height),
+                            width=mm(rect_width),
+                            style='fill:{};'.format(ccolor))
+        base.append(crect)
+
+
+def block_bars(base: bs4.BeautifulSoup, img: bs4.element.Tag, chapters: List[Tuple[int, str, float, str]], width: float, margin_width: float, margin_height: float, rect_height: float, bar_margin: float) -> None:
+    '''Bar generator which creates an equal length of bar on each line, splitting up chapters over multiple lines in the process.'''
+    drawsize_x = width - 2*margin_width
+    # percentage x, line number y
+    cur_x, cur_y = 0, 0
+    for _, _, clen, ccolor in chapters:
+        length_left = clen
+        while length_left > 0:
+            # --- draw one line based on this chapter
+
+            end_x = cur_x + length_left
+            if end_x > 1:
+                # overshot the line end! draw until end of line
+                percent_width = 1 - cur_x
+            else:
+                percent_width = length_left
+
+            rect_width = drawsize_x * percent_width
+
+            pos_x = margin_width + drawsize_x * cur_x
+            pos_y = margin_height + cur_y * rect_height * 2
+            crect = img.new_tag('rect',
+                                x=mm(pos_x),
+                                y=mm(pos_y),
+                                height=mm(rect_height),
+                                width=mm(rect_width),
+                                style='fill:{};'.format(ccolor))
+            base.append(crect)
+
+            # update x and y
+            cur_x += percent_width
+            length_left -= percent_width
+            if cur_x >= 1:
+                cur_x = 0
+                cur_y += 1
+        # end while
+        cur_x += bar_margin
+        if cur_x > 1:
+            cur_x = 0
+            cur_y += 1
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate bar images from book information',
                                      epilog='Copyright © 2021 kleines Filmröllchen. The MIT licence applies.', formatter_class=argparse.HelpFormatter)
@@ -78,53 +158,59 @@ if __name__ == '__main__':
                         help='Uutput SVG to write to. This SVG file is fully compliant and can be read with any browser.')
 
     parser.add_argument('-s', '--size', action='store',
-                        choices=['a3', 'a4', 'a5', '16:9', 'dci', 'cinemascope', 'letter', 'legal', 'ledger'], default='a4',
+                        type=page_format, default=formats['a4'],
                         help='The size of paper/screen to use. This can be selected from a set of standard sizes.')
-
     parser.add_argument('-f', '--flip', action='store_true', default=False,
                         help='Whether to flip the image, i.e. use landscape (wider than tall) mode.')
 
     parser.add_argument('-m', '--margin', action='store',
                         type=float, default=4.0,
                         help='Percentage margins to the edges.')
+    parser.add_argument('-x', '--bar-margin', action='store',
+                        type=float, default=0.02,
+                        help='Percentage margins between bars on the same line. Used only by advanced bar layouts.')
     parser.add_argument('-r', '--rect-height', action='store', type=float,
                         help='Percentage height of each bar. This overrides automatic scaling.')
     parser.add_argument('-c', '--color', action='store',
                         type=str, default='black',
                         help='Color for the rectangles. Any HTML color is allowed but not checked by the script.')
+
     parser.add_argument('-a', '--sections', action='store_true', default=False,
                         help='Enable advanced coloring mode. In this mode, the fourth column can be used to introduce an HTML section color that is used as long as no more section color is found.')
+    parser.add_argument('-b', '--block-mode', action='store_true', default=False,
+                        help='Enable block mode bar image. On each line, there will be an equal length of bar on each line, splitting up chapters over multiple lines.')
 
-    # argument processing
+    # --- argument processing
     args = parser.parse_args()
-    width, height = formats[args.size]
+    width, height = args.size
     if args.flip:
         width, height = height, width
     margin_width = width * args.margin / 100.0
     margin_height = height * args.margin / 100.0
     input_lines = args.input.readlines()
     chapters = chapter_sizes(input_lines, args.color, args.sections)
+    # (auto-)scaling
     if args.rect_height:
         rect_height = height * args.rect_height / 100.0
-    else:
+    elif not args.block_mode:
         rect_height = (height - margin_height * 2) / (len(chapters)*2)
+    else:
+        rect_height = (height - margin_height * 2) / (
+            (sum(starmap(lambda _a, _b, clen, _c: clen, chapters)) +
+             len(chapters) * args.bar_margin)
+            * 2 + 1)
 
-    # svg creation
+    # --- svg creation
     img = bs4.BeautifulSoup(features='xml')
     base = img.new_tag('svg', xmlns='http://www.w3.org/2000/svg',
-                       width=mm(width), height=mm(height), viewBox='0 0 {}mm {}mm'.format(width, height))
+                       width=mm(width), height=mm(height))
     img.append(base)
 
-    # [print(chapter) for chapter in chapters]
-    for index, cname, clen, ccolor in chapters:
-        rect_width = (width - 2*margin_width) * clen
-        pos_y = margin_height + (index-1) * rect_height * 2
-        crect = img.new_tag('rect',
-                            x=mm(margin_width),
-                            y=mm(pos_y),
-                            height=mm(rect_height),
-                            width=mm(rect_width),
-                            style='fill:{};'.format(ccolor))
-        base.append(crect)
+    if args.block_mode:
+        block_bars(base, img, chapters, width,
+                   margin_width, margin_height, rect_height, args.bar_margin)
+    else:
+        simple_bars(base, img, chapters, width,
+                    margin_width, margin_height, rect_height, args.bar_margin)
 
     args.output.write(str(img))
