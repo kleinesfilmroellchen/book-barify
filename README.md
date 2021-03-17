@@ -49,4 +49,4 @@ optional arguments:
 Copyright © 2021 kleines Filmröllchen. The MIT licence applies.
 ```
 
-The example.csv file will be an example input file that supports the section mode.
+The example.csv file is an an example input file with colored sections based on *Alice in Wonderland*. The example.svg output file was generated without any options except input and output.
