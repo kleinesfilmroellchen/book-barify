@@ -63,7 +63,7 @@ def parse_chapters(chapters_csv: List[str], color: str) -> List[Chapter]:
     and the color of this chapter.'''
 
     chapters_reader = reader(chapters_csv, delimiter=',')
-    chapters_dict = defaultdict(lambda: Chapter(0, '', 1))
+    chapters_dict = defaultdict(lambda: Chapter(0, '', -1))
     min_chapter, max_chapter = inf, 0
     current_section_color = color
     for chapter_csv in chapters_reader:
@@ -84,10 +84,13 @@ def parse_chapters(chapters_csv: List[str], color: str) -> List[Chapter]:
     max_chapter_diff = 0
     for index in range(min_chapter, max_chapter+1):
         chapter = chapters_dict[index]
-        # obtains page of previous chapter, can't fail b/c defaultdict
-        _, _, page_prev, *_ = chapters_dict[index-1]
+        # obtains page of next chapter, can't fail b/c defaultdict
+        _, _, page_next, *_ = chapters_dict[index+1]
         # compute page difference and update maximum if necessary
-        page_diff = chapter.length - page_prev
+        page_diff = page_next - chapter.length
+        if page_diff <= 0:
+            # only happens if the defaultdict entry is encountered, i.e. we are on the last chapter that is purely symbolic.
+            continue
         if page_diff > max_chapter_diff:
             max_chapter_diff = page_diff
         chapters.append(Chapter(chapter.index, chapter.name,
