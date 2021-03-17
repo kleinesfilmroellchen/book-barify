@@ -190,9 +190,9 @@ if __name__ == '__main__':
 
     parser.add_argument('-s', '--size', action='store',
                         type=page_format, default=formats['a4'],
-                        help='The size of paper/screen to use. This can be selected from a set of standard sizes.')
-    parser.add_argument('-q', '--flip', action='store_true', default=False,
-                        help='Whether to flip the image, i.e. use landscape (wider than tall) mode.')
+                        help='The size of paper/screen to use. This can be selected from the standard sizes: {a3, a4, a5, 16:9, dci, cinemascope, letter, legal, ledger}. Alternatively, use a custom size of the form WxH with W as the width and H as the height. The sizes are all in millimeters, though this has only symbolic meaning.')
+    parser.add_argument('-l', '--flip', action='store_true', default=False,
+                        help='Whether to flip the image, i.e. use landscape (wider than tall) mode. This is still applicable to custom sizes.')
 
     parser.add_argument('-m', '--margin', action='store',
                         type=float, default=4.0,
