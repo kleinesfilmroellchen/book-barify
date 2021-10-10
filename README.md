@@ -57,3 +57,23 @@ Copyright © 2021 kleines Filmröllchen. The MIT licence applies.
 ```
 
 The example.csv file is an an example input file with colored sections based on *Alice in Wonderland*. The example.svg output file was generated without any options except input and output.
+
+### CSV format
+
+The CSV files follow this format:
+
+```csv
+Chapter number,Chapter name,Index,[Color],[Annotation]
+```
+
+The chapter number must be non-zero and is used to order the chapters; as such, the order of rows does not matter.
+
+The chapter name is parsed, but currently unused.
+
+The "index" is a number that is used to compute chapter lengths. For the example, the page number of the chapter is used, but other usable values include e.g. the word, paragraph, or character count at which the chapter starts. Remember that the index is an absolute value, i.e. it counts from the beginning of the book. (This method was chosen because it's very simple for page count based data -- just specify the starting page of each chapter.)
+
+The color is optional. It specifies the color of the bar that should be used for this chapter. It can be any HTML/CSS color; it's not validated by the program. If a chapter doesn't specify the color, either the global command-line specified color is used, or the last chapter-specific color is repeatedly used if there is no command-line color specified. This means that you can easily color whole sections of chapters in a single color by just giving the first chapter in the section a color and leaving the color column out for all the other chapters in the section. (If the color column contains no characters, it also counts as non-existant.)
+
+The annotation is optional (but must be in the fifth column if no color is given!). It specifies a text annotation to be printed in text-annotation mode. The text annotation is printed on the same line as the chapter's bar in both modes, and it is intended to specify contextual information about the chapter, e.g. major events, interesting facts etc. In block mode, text annotations can overlap if their chapters start on the same line. This is because the text annotation engine is not smart and doesn't know about relative properties between annotations. For this reason, you need to be careful when using many annotations. They are generally intended to be used sparsely, e.g. one annotation per 10-15 chapters.
+
+The delimiter is `,` and if necessary, double quotes `"` can be used to enclose columns.
