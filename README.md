@@ -77,3 +77,13 @@ The color is optional. It specifies the color of the bar that should be used for
 The annotation is optional (but must be in the fifth column if no color is given!). It specifies a text annotation to be printed in text-annotation mode. The text annotation is printed on the same line as the chapter's bar in both modes, and it is intended to specify contextual information about the chapter, e.g. major events, interesting facts etc. In block mode, text annotations can overlap if their chapters start on the same line. This is because the text annotation engine is not smart and doesn't know about relative properties between annotations. For this reason, you need to be careful when using many annotations. They are generally intended to be used sparsely, e.g. one annotation per 10-15 chapters.
 
 The delimiter is `,` and if necessary, double quotes `"` can be used to enclose columns.
+
+## Contributing
+
+Please use PEP-8 compatible formatted code, ideally use a python formatter such as autopep-8.
+
+Please use good commit messages that explain what this changes. When fixing a bug, briefly explain what the bug was, and if non-obvious, explain how you fixed it.
+
+For enhancements: Before doing any work, consider whether your intended new feature/feature change fits with the goals of this project. If in doubt, open an issue and let the project maintainer and other people voice their opinion.
+
+If the change is substantial enough that the simple example output changes, please re-generate the example SVG and make it part of the same commit.
