@@ -191,6 +191,11 @@ if __name__ == '__main__':
                         type=argparse.FileType('w', encoding='utf-8'), default=stdin,
                         help='Uutput SVG to write to. This SVG file is fully compliant and can be read with any browser.')
 
+    parser.add_argument('-b', '--block-mode', action='store_true', default=False,
+                        help='Enable block mode bar image. On each line, there will be an equal length of bar on each line, splitting up chapters over multiple lines.')
+    parser.add_argument('-t', '--text-annotations', action='store_true', default=False,
+                        help='Enable text annotation mode. In this mode, the fourth column of each chapter specifies a text annotation for this chapter that is printed to the right of the chapter\'s starting line.')
+
     parser.add_argument('-s', '--size', action='store',
                         type=page_format, default=formats['a4'],
                         help='The size of paper/screen to use. This can be selected from the standard sizes: {a3, a4, a5, 16:9, dci, cinemascope, letter, legal, ledger}. Alternatively, use a custom size of the form WxH with W as the width and H as the height. The sizes are all in millimeters, though this has only symbolic meaning.')
@@ -203,6 +208,8 @@ if __name__ == '__main__':
     parser.add_argument('-x', '--bar-margin', action='store',
                         type=float, default=2,
                         help='Percentage margins between bars on the same line. Used only by advanced bar layouts.')
+    parser.add_argument('-u', '--annotation-width', action='store', type=float, default=70.0,
+                        help='Width of the text annotation area. Should be adjusted to be large enough for any text that is draw. A percentage of the entire page\'s width. This parameter is ignored if text annotation mode is not active.')
     parser.add_argument('-r', '--rect-height', action='store', type=float,
                         help='Percentage height of each bar. This overrides automatic scaling.')
     parser.add_argument('-c', '--color', action='store',
@@ -213,13 +220,6 @@ if __name__ == '__main__':
                         help='Font for anything that includes text in the image. May be any valid CSS font string, so a number of fallback fonts are allowed.')
     parser.add_argument('-g', '--font-size', action='store', type=str,
                         help='Size of text in the image. May be any valid CSS length, but avoid relative sizes.')
-
-    parser.add_argument('-b', '--block-mode', action='store_true', default=False,
-                        help='Enable block mode bar image. On each line, there will be an equal length of bar on each line, splitting up chapters over multiple lines.')
-    parser.add_argument('-t', '--text-annotations', action='store_true', default=False,
-                        help='Enable text annotation mode. In this mode, the fourth column of each chapter specifies a text annotation for this chapter that is printed to the right of the chapter\'s starting line.')
-    parser.add_argument('-u', '--annotation-width', action='store', type=float, default=70.0,
-                        help='Width of the text annotation area. Should be adjusted to be large enough for any text that is draw. A percentage of the entire page\'s width. This parameter is ignored if text annotation mode is not active.')
 
     # --- argument processing
     args = parser.parse_args()
