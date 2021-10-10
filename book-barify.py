@@ -33,6 +33,10 @@ text {{
 Chapter = namedtuple(
     'Chapter', ['index', 'name', 'length', 'color', 'side_text'], defaults=['', ''])
 
+# Marker to notice if the user didn't specify a color.
+not_a_color = '--definitely-not-a-valid-css-color'
+default_color = 'black'
+
 
 def page_format(spec: str) -> Tuple[int, int]:
     '''Type parser for the page format argument to the CLI.
@@ -65,13 +69,18 @@ def parse_chapters(chapters_csv: List[str], color: str) -> List[Chapter]:
     chapters_reader = reader(chapters_csv, delimiter=',')
     chapters_dict = defaultdict(lambda: Chapter(0, '', -1))
     min_chapter, max_chapter = inf, 0
-    current_section_color = color
+    override_color = color != not_a_color
+    # if there is no color given, we have to start with the actual default
+    current_section_color = default_color if not override_color else color
     for chapter_csv in chapters_reader:
         # destructure csv
         chapter = Chapter(*chapter_csv)
         # clean fields
-        chapter = Chapter(int(chapter.index), chapter.name, int(chapter.length), chapter.color if len(
-            chapter.color) > 0 else current_section_color, chapter.side_text)
+        chapter_color = (color if override_color
+                         else chapter.color if len(chapter.color) > 0
+                         else current_section_color)
+        chapter = Chapter(int(chapter.index), chapter.name, int(
+            chapter.length), chapter_color, chapter.side_text)
         current_section_color = chapter.color
         # set max and min chapter
         if chapter.index < min_chapter:
@@ -213,7 +222,7 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--rect-height', action='store', type=float,
                         help='Percentage height of each bar. This overrides automatic scaling.')
     parser.add_argument('-c', '--color', action='store',
-                        type=str, default='black',
+                        type=str, default=not_a_color,
                         help='Color for the rectangles. Any HTML color is allowed but not checked by the script.')
     parser.add_argument('-f', '--font', action='store',
                         type=str, default='Candara',
